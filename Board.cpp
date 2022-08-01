@@ -20,11 +20,8 @@ bool Board::Collision(int nRow, int nCol, const std::shared_ptr<Piece>& aPiece){
             std::cout<<MyBoard.at(aPiece->myCol + i).at(aPiece->myRow + j)->get();
             std::cout<<std::abs((nCol - (aPiece)->myCol))<<":"<<std::abs(i)<<std::endl;
             std::cout<<std::abs(nRow - (aPiece)->myRow)<<":"<< std::abs(j)<<std::endl;
-            if (MyBoard.at(aPiece->myCol + i).at(aPiece->myRow + j)->myColor != empty) {
-                if(aPiece->canCapture(nCol,nRow)){
-                    CanCapture(aPiece,MyBoard.at(nCol).at(nRow));
-                }
-                std::cout<<"TRue";
+            std::cout<<MyBoard.at(aPiece->myCol + i).at(aPiece->myRow + j)->myColor<<"Hi"<<std::endl;
+            if (MyBoard.at(aPiece->myCol + i).at(aPiece->myRow + j)->myColor != empty and !CanCapture(aPiece, MyBoard.at(nCol).at(nRow))) {
                 return true;
             }
 
@@ -33,7 +30,9 @@ bool Board::Collision(int nRow, int nCol, const std::shared_ptr<Piece>& aPiece){
     else{
         if(MyBoard.at(nCol).at(nRow)->myColor != empty)
             if(aPiece->canCapture(nCol,nRow)) {
-                CanCapture(aPiece, MyBoard.at(nCol).at(nRow));
+                if(CanCapture(aPiece, MyBoard.at(nCol).at(nRow))){
+                    return false;
+                }
             }
             else {
                 return true;
@@ -107,35 +106,66 @@ void Board::ABoardVisionGenerator(std::shared_ptr<Piece> thisGuy){
                 }
             }
             break;
-        case('P'):
-            for(const auto & i : ListOfVision.King) {
-                if(thisGuy->myCol + color*get<1>(i) < 8 and thisGuy->myCol + color*get<1>(i) > 0 and
+        case('p'):
+            for(const auto & i : ListOfVision.Pawn) {
+                if((thisGuy->myCol + color*get<1>(i)) < 8 and (thisGuy->myCol + color*get<1>(i)) > 0 and
                    thisGuy->myRow + color*get<0>(i) > 0 and thisGuy->myRow + color*get<0>(i) < 8 and get<1>(i) != 2){
-                    Board_Vision.at(thisGuy->myRow+get<0>(i)).at(thisGuy->myCol+get<1>(i)).push_back(thisGuy);
-                }
-                else{
-                    if(thisGuy->HasNotMoved){
-                        Board_Vision.at(thisGuy->myRow+color*get<0>(i)).at(thisGuy->myCol+color*get<1>(i)).push_back(thisGuy);
-                    }
+                    Board_Vision.at(thisGuy->myRow+color*get<0>(i)).at(thisGuy->myCol+color*get<1>(i)).push_back(thisGuy);
                 }
             }
             break;
         case('N'):
-            for(const auto & i : ListOfVision.King) {
-                if(thisGuy->myCol + get<1>(i) < 8 and thisGuy->myCol + get<1>(i) > 0 and
-                   thisGuy->myRow + get<0>(i) > 0 and thisGuy->myRow + get<0>(i) < 8){
+            for(const auto & i : ListOfVision.Knight) {
+                if(thisGuy->myCol + std::get<1>(i) < 8 and thisGuy->myCol + get<1>(i) > 0 and
+                   thisGuy->myRow + std::get<0>(i) > 0 and thisGuy->myRow + get<0>(i) < 8){
                     Board_Vision.at(thisGuy->myRow+get<0>(i)).at(thisGuy->myCol+get<1>(i)).push_back(thisGuy);
                 }
             }
             break;
         case('R'):
+            for(const auto & i : ListOfVision.Rook) {
+                for (int k = 0; k < 8; k++){
+                        if(thisGuy->myCol + k*get<1>(i) < 8 and thisGuy->myCol + k*get<1>(i) > 0 and
+                           thisGuy->myRow + get<0>(i) > 0 and thisGuy->myRow + get<0>(i) < 8){
+                            Board_Vision.at(thisGuy->myRow+get<0>(i)).at(thisGuy->myCol+k*get<1>(i)).push_back(thisGuy);
+                        }
+
+                }
+              for (int j = 0 ; j < 8; j++){
+                        if(thisGuy->myCol + get<1>(i) < 8 and thisGuy->myCol + get<1>(i) > 0 and
+                           thisGuy->myRow + j*get<0>(i) > 0 and thisGuy->myRow + j*get<0>(i) < 8){
+                            Board_Vision.at(thisGuy->myRow+j*get<0>(i)).at(thisGuy->myCol+get<1>(i)).push_back(thisGuy);
+                        }
+                    }
+            }
+            break;
         case('Q'):
-        case('B'):
-            for(const auto & i : ListOfVision.King) {
+            for(const auto & i : ListOfVision.Queen) {
+                for (int k = 1; k < 8; k++){
+                        if(thisGuy->myCol + k*get<1>(i) < 8 and thisGuy->myCol + k*get<1>(i) > 0 and
+                           thisGuy->myRow + get<0>(i) > 0 and thisGuy->myRow + get<0>(i) < 8){
+                            Board_Vision.at(thisGuy->myRow+get<0>(i)).at(thisGuy->myCol+k*get<1>(i)).push_back(thisGuy);
+                        }
+                    
+                for (int j = 1; j < 8; j++){
+                        if(thisGuy->myCol + get<1>(i) < 8 and thisGuy->myCol + get<1>(i) > 0 and
+                           thisGuy->myRow + j*get<0>(i) > 0 and thisGuy->myRow + j*get<0>(i) < 8){
+                            Board_Vision.at(thisGuy->myRow+j*get<0>(i)).at(thisGuy->myCol+get<1>(i)).push_back(thisGuy);
+                        }
+                    }
                 for(int j = 1; j < 8; j++){
                     if(thisGuy->myCol + j*get<1>(i) < 8 and thisGuy->myCol + j*get<1>(i) > 0 and
                        thisGuy->myRow + j*get<0>(i) > 0 and thisGuy->myRow + j*get<0>(i) < 8){
-                        Board_Vision.at(thisGuy->myRow+get<0>(i)).at(thisGuy->myCol+get<1>(i)).push_back(thisGuy);
+                        Board_Vision.at(thisGuy->myRow+j*get<0>(i)).at(thisGuy->myCol+j*get<1>(i)).push_back(thisGuy);
+                    }}
+            }
+            }
+        case('B'):
+            for(const auto & i : ListOfVision.Bishop) {
+                for(int j = 0; j < 8; j++){
+                    if(thisGuy->myCol + j*get<1>(i) < 8 and thisGuy->myCol + j*get<1>(i) > 0 and
+                       thisGuy->myRow + j*get<0>(i) > 0 and thisGuy->myRow + j*get<0>(i) < 8){
+                        Board_Vision.at(thisGuy->myRow+j*get<0>(i)).at(thisGuy->myCol+j*get<1>(i)).push_back(thisGuy);
                     }}
             }
             break;
@@ -188,7 +218,7 @@ void Board::ABoardVisionRemover(std::shared_ptr<Piece> thisGuy){
     }
 }bool Board::CanCapture(std::shared_ptr<Piece> Attacker, std::shared_ptr<Piece> Victim) {
     if(Attacker->myColor != Victim->myColor and Victim->myColor != empty){
-        return true;
+            return true;
     }
     return false;
 }

@@ -1,8 +1,7 @@
 //
 // Created by Elliot Hagyard on 1/26/22.
 //
-#include <thread>
-#include <future>
+
 #include "Game.h"
     void Game::Turn(){
             std::cout<<"Current Turn "<<totalTurns<<std::endl;
@@ -30,11 +29,15 @@
     bool Game::MoveIsLegal(std::string Move){ //this can be compeltly be rewriteen to totally simplify it.
         if(Move.size() == 1)
             return false;
+        //Parsing the input in chess notation to a row and column
         int NewRow = 7-(Move.at(Move.size() -1) - '1');
         int NewCol = Move.at(Move.size()-2) - 'a';
-        std::cout<<"C: "<<NewCol<<"R: "<< NewRow;
+        std::cout<<"C: "<<NewCol<<std::endl<<"R: "<< NewRow<<std::endl;
         std::string cTurn = whoseTurn();
+        std::cout<<cTurn<<std::endl;
         std::list<std::shared_ptr<Piece>> pList;
+        //Cleaner way to do this?
+        std::cout<<Move.size()<<std::endl;
         if(Move == "00" or Move == "000" or Move == "0-0" or Move == "0-0-0" or
         Move == "OO" or Move == "OOO" or Move == "O-O" or Move == "O-O-O") {
             //std::cout<<"Am I Here?";
@@ -42,17 +45,19 @@
             return Castles(Move.size()-2);//This should be fine, but will deifnetly need to be changed
         }
         else if(Move.size() == 2) {
-           pList = FindPieces(cTurn+'p', CurTurn);
-           for(auto & it : pList){
-               std::cout<<"Hi";
-               if(it->MoveIsLegal(NewCol,NewRow)){
-                   std::cout<<"Hey";
-                   if(!GBoard.Collision(NewRow,NewCol, it)) {
-                       std::cout << "Hello";
-                       MoveTidyFunc(NewCol, NewRow, it);
-                       std::cout<<GBoard.EnPassant;
+            pList = FindPieces(cTurn+'p', CurTurn);
 
-                       return true;
+           for(auto & it : pList){
+              std::cout<<it->get()<<std::endl;
+               if(it->MoveIsLegal(NewCol,NewRow)){
+                   if(!GBoard.Collision(NewRow,NewCol, it)) {
+                        if(it->myCol == NewCol){
+                        //Check to avoid pawns being able to move diagnol whenever (Not sure if it actually fixes it)
+                           MoveTidyFunc(NewCol, NewRow, it);
+                           std::cout<<GBoard.EnPassant;
+        
+                           return true;
+                        }
                    }
                }
             }
@@ -74,9 +79,7 @@
             }
         }
         else if(Move.size() == 4){
-            std::cout<<"Debugging Message for exd5"<<std::endl;
             if(Move.at(1) == 'x'){
-                std::cout<<"AHHHHHH"<<std::endl;
                 std::cout<<Move.at(0)<<(Move.at(0) <'A')<<std::endl;
                 if(Move.at(0) > 'Z'){
                     pList = FindPieces(cTurn+'p', CurTurn);
@@ -84,9 +87,8 @@
                     for(auto & it : pList){
                         std::cout<<"Is this running multiple times";
                             if(!Check(it))
-                                captures(it,GBoard.MyBoard.at(NewCol).at(NewRow));
-                                captures(it,GBoard.MyBoard.at(NewCol).at(NewRow));
-                                return true;
+                                if(captures(it,GBoard.MyBoard.at(NewCol).at(NewRow)));
+                                    return true;
                     }
                 }
                 else {
@@ -98,8 +100,8 @@
                             std::cout<<"2captures";
                             if (!Check(*it) and !GBoard.Collision(NewRow,NewCol, *it))
                                 std::cout<<"3captures";
-                                captures(*it, GBoard.MyBoard.at(NewCol).at(NewRow));
-                                return true;
+                                if(captures(*it, GBoard.MyBoard.at(NewCol).at(NewRow)))
+                                    return true;
                         }
                     }
                 }
@@ -124,6 +126,7 @@ std::list<std::shared_ptr<Piece>> Game::FindPieces(const std::string& pId, bool 
     std::list<std::shared_ptr<Piece>> TheseGuys;
 
     for(auto it = GBoard.PieceListWB.at(color).begin(); it != GBoard.PieceListWB.at(color).end(); it++) {
+        std::cout<<"Piece id = "<<(*it)->get()<<std::endl;
         if ((*it)->get() == pId) {
             TheseGuys.push_back(*it);
         }
@@ -175,7 +178,7 @@ bool Game::Castles(bool SOL) {
 
 bool Game::Mate(){
     std::list<Piece*> CheckingPiece;
-    for(auto it = GBoard.PieceListWB.at(CurTurn).begin(); it != GBoard.PieceListWB.at(CurTurn).end(); it++){
+    for(auto it = GBoard.PieceListWB.at(!CurTurn).begin(); it != GBoard.PieceListWB.at(!CurTurn).end(); it++){
         if(typeid(*it) == typeid(King*)){
             for(int i = 0; i< 8; i++){
                 for(int j = 0; j < 8; j++){
@@ -185,11 +188,25 @@ bool Game::Mate(){
             }
         }
         if(Check()){
-            CheckingPiece = CheckFromWhere();
-            if(CheckingPiece.size() == 2){
+            if(this->CheckingPieces.size() == 2){
+            
                 return true;
             }
-            else if(CheckingPiece.size() == 1){
+            else if(this->CheckingPieces.size() == 1){
+            //This seems like it might be an incredibly slow method of doing this
+            //Fuck me for not planning this out at all
+                //This doesn't need to be a for loop at all
+                for(const auto it: this->CheckingPieces){
+                    //Iterate throgh the pieces that see the checking piece, if they are the opposite color
+                    //Then return false
+                    for(const auto jt: GBoard.Board_Vision.at(it->myRow).at(it->myCol)){
+                        //Comparing color of piece to the color of the player making hte move
+                        if(jt->get().at(0) != whoseTurn()[0]){
+                            if(GBoard.CanCapture(jt,it)){
+                            }
+                        }
+                    }
+                }
                 //Figure out the difference in the positons of the pieces and then along those squares, see if you can interpose
             }
             else{
@@ -207,13 +224,22 @@ void Game::MoveTidyFunc(const int Col, const int Row, std::shared_ptr<Piece> aGu
     std::cout<<"Move Tidy Row:Cool"<<Row<<":"<<Col<<std::endl;
     GBoard.ABoardVisionRemover(aGuy);
     GBoard.MyBoard.at((aGuy)->myCol).at((aGuy)->myRow) = std::shared_ptr<Piece> (new Piece);
+    if(aGuy->get()[1]=='p' and aGuy->HasNotMoved and std::abs(aGuy->myRow) == 2){
+        *GBoard.EnPassant = true;
+    }
+    else {
+        *GBoard.EnPassant = false;
+    }
     (aGuy)->updatePosition(Col, Row);
 
     GBoard.ABoardVisionGenerator(aGuy);
 }
-void Game::captures(std::shared_ptr<Piece> Attacker, std::shared_ptr<Piece> Victim) {
-    if(GBoard.CanCapture(Attacker, Victim)){
+bool Game::captures(std::shared_ptr<Piece> Attacker, std::shared_ptr<Piece> Victim) {
+    if(GBoard.CanCapture(Attacker, Victim) and !GBoard.Collision(Victim->myRow,Victim->myCol,Attacker)){
         GBoard.PieceListWB.at(Victim->myColor-1).remove(Victim);
         MoveTidyFunc(Victim->myCol,Victim->myRow, Attacker);
+        GBoard.ABoardVisionRemover(Attacker);
+        return true;
     }
+    return false;
 }
